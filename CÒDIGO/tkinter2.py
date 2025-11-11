@@ -3,8 +3,7 @@ from tkinter import messagebox
 
 def caminhos(indice):
     try:
-        estadosstr = estados_var.get()
-        total_estados = int(estadosstr)
+        total_estados = int(estados_var.get())
     except ValueError:
         messagebox.showerror("Erro", "Digite um número válido de estados!")
         return
@@ -12,6 +11,7 @@ def caminhos(indice):
     if indice >= total_estados:
         messagebox.showinfo("Concluído", "Todos os caminhos foram preenchidos!")
         retornarDados()
+        return
 
     proximo(indice)
 
@@ -23,26 +23,26 @@ def proximo(indice):
     frame = tk.Frame(janela)
     frame.grid(row=0, column=0, sticky="nsew", padx=15, pady=15)
 
-    janela.columnconfigure(0, weight=1)
-    janela.rowconfigure(0, weight=1)
-
     entrada_var = tk.StringVar()
 
     tk.Label(frame, text=f"Digite o(s) caminho(s) a partir de q{indice}:").grid(
-        row=0, column=0, sticky="w", padx=5, pady=5
+        row=0, column=0, sticky="ew", padx=5, pady=5
     )
     tk.Entry(frame, textvariable=entrada_var).grid(
         row=1, column=0, sticky="ew", padx=5, pady=5
     )
 
     def avancar():
-        valor = entrada_var.get()
-        valores = valor.split(",")
+        valor = entrada_var.get().strip()
+        if not valor:
+            messagebox.showwarning("Aviso", "Digite ao menos um caminho.")
+            return
 
+        valores = [v.strip() for v in valor.split(",") if v.strip()]
         for simbolo in valores:
             caminhosVet.append(f"q{indice},{simbolo}")
 
-        print(f"q{indice} -> {valor}")
+        print(f"q{indice} -> {valores}")
         janela.destroy()
         caminhos(indice + 1)
 
@@ -50,59 +50,52 @@ def proximo(indice):
         column=0, row=2, sticky="e", padx=5, pady=10
     )
 
-
 def retornarDados():    
     alfabeto = alfabeto_var.get()
-    estadosstr = estados_var.get()
-    estados = int(estadosstr)
-    listaEstados = []
-    listaAlfabeto = []
+    try:
+        estados = int(estados_var.get())
+    except ValueError:
+        messagebox.showerror("Erro", "Número de estados inválido!")
+        return
 
-    if alfabeto and estados:
-        alfabeto = alfabeto.split(",")
+    listaEstados = [f"q{i}" for i in range(1, estados + 1)]
+    listaAlfabeto = [s.strip() for s in alfabeto.split(",") if s.strip()]
 
-        for simbolo in alfabeto:
-            simbolo = simbolo.strip()
-            if simbolo not in listaAlfabeto:
-                listaAlfabeto.append(simbolo)
+    mensagem = f"Alfabeto -> {listaAlfabeto}\nEstados -> {listaEstados}"
+    messagebox.showinfo("Sucesso", mensagem)
+    telaLista(caminhosVet)
 
-        for i in range(estados):
-            listaEstados.append(f"q{i}")
-
-        mensagem = f"Alfabeto -> {listaAlfabeto}\nEstados -> {listaEstados}"
-        messagebox.showinfo("Sucesso", mensagem)
-        telaMatriz(listaAlfabeto, caminhosVet)
-
-def telaMatriz(alfabeto, estados):
+def telaLista(caminhos):
     nova_janela = tk.Toplevel(root)
-    nova_janela.title("Matriz de Transições")
-    nova_janela.geometry("700x400")
+    nova_janela.title("Valores das Transições")
+    nova_janela.geometry("400x200")
 
     frame = tk.Frame(nova_janela, padx=10, pady=10)
     frame.pack(fill="both", expand=True)
 
-    for i in range(len(alfabeto) + 1):
-        frame.rowconfigure(i, weight=1)
-    for j in range(len(estados) + 1):
-        frame.columnconfigure(j, weight=1)
+    entradas = {}
 
-    tk.Label(frame, text="").grid(row=0, column=0)
-    for j, estado in enumerate(estados, start=1):
+    for j, estado in enumerate(caminhos):
         tk.Label(frame, text=estado, borderwidth=1, relief="ridge").grid(
             row=0, column=j, sticky="nsew", padx=2, pady=2
         )
+        entry = tk.Entry(frame, justify="center")
+        entry.grid(row=1, column=j, sticky="nsew", padx=2, pady=2)
+        entradas[estado] = entry
 
-    entradas = {}
-    for i, simbolo in enumerate(alfabeto, start=1):
-        tk.Label(frame, text=simbolo, borderwidth=1, relief="ridge").grid(
-            row=i, column=0, sticky="nsew", padx=2, pady=2
-        )
-        for j, estado in enumerate(estados, start=1):
-            entry = tk.Entry(frame, justify="center")
-            entry.grid(row=i, column=j, sticky="nsew", padx=2, pady=2)
-            entradas[(simbolo, estado)] = entry
+    def guardar():
+        dados = {estado: entry.get() for estado, entry in entradas.items()}
+        saveEntrada(dados)
+        nova_janela.destroy()
 
-    return frame
+    tk.Button(frame, text="Guardar valores", command=guardar).grid(
+        column=0, row=2, columnspan=len(caminhos), sticky="nsew", padx=5, pady=5
+    )
+
+def saveEntrada(entrada):
+    print("Valores salvos:")
+    for estado, valor in entrada.items():
+        print(f"{estado} -> {valor}")
 
 root = tk.Tk()
 root.title("Autômato com Pilha")
@@ -115,10 +108,7 @@ caminhosVet = []
 frame = tk.Frame(root)
 frame.grid(row=0, column=0, sticky="nsew", padx=15, pady=15)
 
-root.columnconfigure(0, weight=1)
-root.rowconfigure(0, weight=1)
-
-tk.Label(frame, text="Digite o alfabeto de entrada").grid(row=0, column=0, sticky="w")
+tk.Label(frame, text="Digite o alfabeto de entrada (ex: a,b,c)").grid(row=0, column=0, sticky="w")
 tk.Entry(frame, textvariable=alfabeto_var).grid(row=0, column=1, sticky="ew")
 
 tk.Label(frame, text="Digite o número de estados").grid(row=1, column=0, sticky="w")
